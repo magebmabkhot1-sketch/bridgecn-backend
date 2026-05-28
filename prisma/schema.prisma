@@ -1,0 +1,141 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password      String
+  firstName     String
+  lastName      String
+  fullName      String?
+  university    String
+  studentType   String
+  yearOfStudy   String
+  bio           String?
+  avatar        String?
+  isVerified    Boolean   @default(false)
+  userRole      String    @default("USER")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  interests     UserInterest[]
+  languages     UserLanguage[]
+  posts         Post[]
+  likes         Like[]
+  comments      Comment[]
+  
+  @@index([university])
+  @@index([studentType])
+}
+
+model UserInterest {
+  id       String @id @default(uuid())
+  userId   String
+  interest String
+  
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, interest])
+  @@index([userId])
+}
+
+model UserLanguage {
+  id       String @id @default(uuid())
+  userId   String
+  language String
+  
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, language])
+  @@index([userId])
+}
+
+model Post {
+  id        String   @id @default(uuid())
+  authorId  String
+  content   String
+  imageUrl  String?
+  likes     Int      @default(0)
+  comments  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  tags      PostTag[]
+  postLikes Like[]
+  postComments Comment[]
+  
+  @@index([authorId])
+  @@index([createdAt(sort: Desc)])
+}
+
+model PostTag {
+  id     String @id @default(uuid())
+  postId String
+  tag    String
+  
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  @@unique([postId, tag])
+  @@index([postId])
+}
+
+model Like {
+  id        String   @id @default(uuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+  
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  postId    String
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([postId])
+  @@index([userId])
+  @@index([createdAt(sort: Desc)])
+}
+
+model WaitlistEntry {
+  id          String           @id @default(uuid())
+  email       String           @unique
+  fullName    String
+  university  String
+  studentType String
+  yearOfStudy String
+  status      String           @default("pending")
+  createdAt   DateTime         @default(now())
+  
+  interests   WaitlistInterest[]
+}
+
+model WaitlistInterest {
+  id            String        @id @default(uuid())
+  waitlistId    String
+  interest      String
+  
+  waitlistEntry WaitlistEntry @relation(fields: [waitlistId], references: [id], onDelete: Cascade)
+  
+  @@unique([waitlistId, interest])
+  @@index([waitlistId])
+}
