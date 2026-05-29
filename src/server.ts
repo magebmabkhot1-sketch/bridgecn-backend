@@ -1,109 +1,77 @@
-import express from 'express'
-import cors from 'cors'
-import helmet from 'helmet'
-import morgan from 'morgan'
-import dotenv from 'dotenv'
-import { Server } from 'socket.io'
-import { createServer } from 'http'
-import authRoutes from './routes/auth.routes'
-import postRoutes from './routes/post.routes'
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import morgan from 'morgan';
+import dotenv from 'dotenv';
+import { PrismaClient } from '@prisma/client';
+import authRoutes from './routes/auth';
+import userRoutes from './routes/users';
+import postRoutes from './routes/posts';
+import studentRoutes from './routes/students';
+import universityRoutes from './routes/universities';
+import waitlistRoutes from './routes/waitlist';
+import profileRoutes from './routes/profile';
+import messageRoutes from './routes/messages'; // Assuming you have this
+import notificationRoutes from './routes/notifications'; // Assuming you have this
 
-dotenv.config()
+dotenv.config();
 
-const app = express()
-const httpServer = createServer(app)
+const app = express();
+const prisma = new PrismaClient();
+const PORT = process.env.PORT || 4000;
 
-// Configure Socket.IO with CORS
-const io = new Server(httpServer, {
-  cors: { 
-    origin: true, // Allow all origins for Socket.io (handled by Express CORS below)
-    methods: ['GET', 'POST'],
-    credentials: true
-  }
-})
-
-// --- MIDDLEWARE ---
-app.use(helmet())
-
-// CORS Configuration for Production
-const allowedOrigins = [
-  'http://localhost:5173',       // Local Dev
-  'https://bridgecn.vercel.app', // Your Vercel Production URL (Update this after deploying)
-  /vercel\.app$/                // Regex to allow all Vercel preview deployments
-]
-
+// --- CRITICAL FIX FOR NETWORK ERROR ---
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    // Check if origin is in allowed list or matches regex
-    const isAllowed = allowedOrigins.some(allowed => {
-      if (typeof allowed === 'string') return allowed === origin;
-      return allowed.test(origin);
-    });
-
-    if (isAllowed) {
-      callback(null, true)
-    } else {
-      console.log(`Blocked by CORS: ${origin}`)
-      callback(new Error('Not allowed by CORS'))
-    }
-  },
+  origin: ['https://bridgecn-frontend-x5bq.vercel.app', 'http://localhost:5173'], // REPLACE with your exact Vercel URL
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}))
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+// ----------------------------------------
 
-app.use(morgan('dev'))
-app.use(express.json({ limit: '10mb' }))
-app.use(express.urlencoded({ extended: true }))
+app.use(helmet());
+app.use(morgan('dev'));
+app.use(express.json());
 
-// --- ROUTES ---
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() })
-})
+// Database Connection Check
+async function main() {
+  try {
+    await prisma.$connect();
+    console.log('✅ Database connected successfully');
+  } catch (error) {
+    console.error('❌ Database connection failed:', error);
+    process.exit(1);
+  }
+}
+main();
 
-app.use('/api/auth', authRoutes)
-app.use('/api/posts', postRoutes)
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/posts', postRoutes);
+app.use('/api/students', studentRoutes);
+app.use('/api/universities', universityRoutes);
+app.use('/api/waitlist', waitlistRoutes);
+app.use('/api/profile', profileRoutes);
+// Add other routes here if they exist (messages, notifications, etc.)
 
-app.use('*', (_req, res) => {
-  res.status(404).json({ message: 'Route not found' })
-})
+// Health Check
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
+});
 
-app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error(' Server Error:', err)
-  res.status(err.status || 500).json({
-    message: err.message || 'Internal server error',
-    error: process.env.NODE_ENV === 'development' ? err.stack : undefined
-  })
-})
+// Error Handling Middleware
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error(err.stack);
+  res.status(err.statusCode || 500).json({
+    message: err.message || 'Internal Server Error',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+  });
+});
 
-// --- SOCKET.IO REAL-TIME LOGIC ---
-io.on('connection', (socket) => {
-  console.log(` User connected: ${socket.id}`)
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
+});
 
-  socket.on('join-user-room', (userId: string) => {
-    socket.join(userId)
-    console.log(`User ${socket.id} joined room: ${userId}`)
-  })
-
-  socket.on('send-private-message', ({ targetUserId, messageData }) => {
-    io.to(targetUserId).emit('receive-message', messageData)
-    console.log(`Message sent to user: ${targetUserId}`)
-  })
-
-  socket.on('disconnect', () => {
-    console.log(`❌ User disconnected: ${socket.id}`)
-  })
-})
-
-// --- START SERVER ---
-const PORT = process.env.PORT || 4000
-
-httpServer.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`)
-  console.log(` Environment: ${process.env.NODE_ENV || 'development'}`)
-})
-
-export { app, io }
+export default app;
