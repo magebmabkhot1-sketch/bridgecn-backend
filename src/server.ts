@@ -11,8 +11,7 @@ import studentRoutes from './routes/students';
 import universityRoutes from './routes/universities';
 import waitlistRoutes from './routes/waitlist';
 import profileRoutes from './routes/profile';
-import messageRoutes from './routes/messages'; // Assuming you have this
-import notificationRoutes from './routes/notifications'; // Assuming you have this
+// Import other routes if you have them (messages, notifications, etc.)
 
 dotenv.config();
 
@@ -22,7 +21,7 @@ const PORT = process.env.PORT || 4000;
 
 // --- CRITICAL FIX FOR NETWORK ERROR ---
 app.use(cors({
-  origin: ['https://bridgecn-frontend-x5bq.vercel.app', 'http://localhost:5173'], // REPLACE with your exact Vercel URL
+  origin: ['https://bridgecn-frontend-cr84.vercel.app', 'http://localhost:5173'], // <--- YOUR EXACT VERCEL URL
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -53,7 +52,7 @@ app.use('/api/students', studentRoutes);
 app.use('/api/universities', universityRoutes);
 app.use('/api/waitlist', waitlistRoutes);
 app.use('/api/profile', profileRoutes);
-// Add other routes here if they exist (messages, notifications, etc.)
+// Add other routes here if they exist
 
 // Health Check
 app.get('/api/health', (req, res) => {
