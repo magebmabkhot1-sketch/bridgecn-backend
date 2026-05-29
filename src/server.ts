@@ -21,7 +21,7 @@ const PORT = process.env.PORT || 4000;
 
 // --- CRITICAL FIX FOR NETWORK ERROR ---
 app.use(cors({
-  origin: ['https://bridgecn-frontend-cr84.vercel.app', 'http://localhost:5173'], // <--- YOUR EXACT VERCEL URL
+  origin: ['https://bridgecn-frontend-final.vercel.app', 'http://localhost:5173'], // <--- YOUR NEW VERCEL URL
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
